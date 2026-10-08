@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="farasoo_blue">#29A8DF</color>
+    <color name="farasoo_blue_dark">#0EA5E9</color>
+    <color name="farasoo_bg">#F0F9FF</color>
+    <color name="farasoo_white">#FFFFFF</color>
+    <color name="farasoo_text">#0C4A6E</color>
+</resources>
