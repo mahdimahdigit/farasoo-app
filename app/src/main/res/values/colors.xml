@@ -2,7 +2,13 @@
 <resources>
     <color name="farasoo_blue">#29A8DF</color>
     <color name="farasoo_blue_dark">#0EA5E9</color>
+    <color name="farasoo_blue_light">#E0F2FE</color>
     <color name="farasoo_bg">#F0F9FF</color>
     <color name="farasoo_white">#FFFFFF</color>
     <color name="farasoo_text">#0C4A6E</color>
+    <color name="farasoo_gray">#64748B</color>
+    <color name="farasoo_green">#10B981</color>
+    <color name="farasoo_orange">#F59E0B</color>
+    <color name="farasoo_red">#EF4444</color>
+    <color name="farasoo_purple">#A78BFA</color>
 </resources>
