@@ -4,7 +4,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -45,26 +44,22 @@ class DashboardActivity : AppCompatActivity() {
             binding.userSeatText.visibility = View.GONE
         }
 
-        // Logout
         binding.logoutButton.setOnClickListener {
             prefs.edit().clear().apply()
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
 
-        // Refresh
         binding.refreshButton.setOnClickListener {
             loadUserData()
             loadChartData()
         }
 
-        // Tabs
         binding.tab7Days.setOnClickListener { switchPeriod("day") }
         binding.tab4Weeks.setOnClickListener { switchPeriod("week") }
         binding.tab6Months.setOnClickListener { switchPeriod("month") }
 
         setupCharts()
-
         loadUserData()
         loadChartData()
     }
@@ -72,7 +67,6 @@ class DashboardActivity : AppCompatActivity() {
     private fun switchPeriod(period: String) {
         currentPeriod = period
 
-        // رنگ دکمه‌ها
         val activeBg = ContextCompat.getColor(this, R.color.farasoo_white)
         val activeText = ContextCompat.getColor(this, R.color.farasoo_blue_dark)
         val inactiveBg = Color.TRANSPARENT
@@ -80,10 +74,8 @@ class DashboardActivity : AppCompatActivity() {
 
         binding.tab7Days.setBackgroundColor(if (period == "day") activeBg else inactiveBg)
         binding.tab7Days.setTextColor(if (period == "day") activeText else inactiveText)
-
         binding.tab4Weeks.setBackgroundColor(if (period == "week") activeBg else inactiveBg)
         binding.tab4Weeks.setTextColor(if (period == "week") activeText else inactiveText)
-
         binding.tab6Months.setBackgroundColor(if (period == "month") activeBg else inactiveBg)
         binding.tab6Months.setTextColor(if (period == "month") activeText else inactiveText)
 
@@ -94,15 +86,12 @@ class DashboardActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val data = ApiClient.getUserInfo(userId) ?: return@launch
 
-            // Bytes
             val usedGb = data.usedBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
             binding.usedGbText.text = String.format("%.2f", usedGb)
 
-            // Seconds
             val usedHours = data.usedSeconds.toDouble() / 3600.0
             binding.usedHoursText.text = String.format("%.1f", usedHours)
 
-            // Percentages
             if (data.quotaBytes > 0) {
                 val pct = (data.usedBytes.toDouble() / data.quotaBytes.toDouble() * 100).coerceAtMost(100.0)
                 binding.bytesPercentText.text = "${pct.roundToInt()}%"
@@ -117,7 +106,6 @@ class DashboardActivity : AppCompatActivity() {
                 binding.timePercentText.text = "نامحدود"
             }
 
-            // Cost
             binding.costText.text = data.currentCost.toString().reversed().chunked(3).joinToString(",").reversed()
         }
     }
@@ -133,7 +121,6 @@ class DashboardActivity : AppCompatActivity() {
             val data = ApiClient.getChartData(userId, days)
             if (data.isEmpty()) return@launch
 
-            // گروه‌بندی بر اساس period
             val grouped = groupData(data)
 
             updateChart(binding.chartVolume, grouped.map { it.bytes / (1024f * 1024f) }, grouped.map { it.label }, Color.parseColor("#29A8DF"))
@@ -147,29 +134,39 @@ class DashboardActivity : AppCompatActivity() {
 
         when (currentPeriod) {
             "day" -> {
-                data.forEach {
-                    result.add(GroupedData(it.date.takeLast(5), it.bytes, it.seconds))
+                for (p in data) {
+                    result.add(GroupedData(p.date.takeLast(5), p.bytes, p.seconds))
                 }
             }
             "week" -> {
                 var i = 0
                 while (i < data.size) {
-                    val slice = data.subList(i, (i + 7).coerceAtMost(data.size))
-                    val bytes = slice.sumOf { it.bytes }
-                    val seconds = slice.sumOf { it.seconds }
-                    val label = slice.firstOrNull()?.date?.takeLast(5) ?: ""
-                    result.add(GroupedData(label, bytes, seconds))
+                    val end = (i + 7).coerceAtMost(data.size)
+                    val slice = data.subList(i, end)
+                    var totalBytes = 0L
+                    var totalSeconds = 0L
+                    for (item in slice) {
+                        totalBytes += item.bytes
+                        totalSeconds += item.seconds
+                    }
+                    val label = slice[0].date.takeLast(5)
+                    result.add(GroupedData(label, totalBytes, totalSeconds))
                     i += 7
                 }
             }
             else -> {
                 var i = 0
                 while (i < data.size) {
-                    val slice = data.subList(i, (i + 30).coerceAtMost(data.size))
-                    val bytes = slice.sumOf { it.bytes }
-                    val seconds = slice.sumOf { it.seconds }
-                    val label = slice.firstOrNull()?.date?.takeLast(5) ?: ""
-                    result.add(GroupedData(label, bytes, seconds))
+                    val end = (i + 30).coerceAtMost(data.size)
+                    val slice = data.subList(i, end)
+                    var totalBytes = 0L
+                    var totalSeconds = 0L
+                    for (item in slice) {
+                        totalBytes += item.bytes
+                        totalSeconds += item.seconds
+                    }
+                    val label = slice[0].date.takeLast(5)
+                    result.add(GroupedData(label, totalBytes, totalSeconds))
                     i += 30
                 }
             }
@@ -178,20 +175,19 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun setupCharts() {
-        listOf(binding.chartVolume, binding.chartTime, binding.chartCost).forEach { chart ->
+        val chartList = listOf(binding.chartVolume, binding.chartTime, binding.chartCost)
+        for (chart in chartList) {
             chart.description.isEnabled = false
             chart.legend.isEnabled = false
             chart.setTouchEnabled(true)
             chart.setDrawGridBackground(false)
             chart.setDrawBorders(false)
             chart.axisRight.isEnabled = false
-
             chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
             chart.xAxis.setDrawGridLines(false)
             chart.xAxis.granularity = 1f
             chart.xAxis.textColor = Color.parseColor("#64748B")
             chart.xAxis.textSize = 9f
-
             chart.axisLeft.textColor = Color.parseColor("#64748B")
             chart.axisLeft.textSize = 9f
             chart.axisLeft.setDrawGridLines(true)
@@ -200,24 +196,31 @@ class DashboardActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateChart(chart: com.github.mikephil.charting.charts.LineChart, values: List<Float>, labels: List<String>, color: Int) {
-        val entries = values.mapIndexed { i, v -> Entry(i.toFloat(), v) }
-
-        val dataSet = LineDataSet(entries, "").apply {
-            this.color = color
-            setCircleColor(color)
-            lineWidth = 2.5f
-            circleRadius = 4f
-            setDrawCircleHole(true)
-            circleHoleColor = Color.WHITE
-            setDrawValues(false)
-            mode = LineDataSet.Mode.CUBIC_BEZIER
-            setDrawFilled(true)
-            fillColor = color
-            fillAlpha = 50
-            highLightColor = color
-            setDrawHorizontalHighlightIndicator(false)
+    private fun updateChart(
+        chart: com.github.mikephil.charting.charts.LineChart,
+        values: List<Float>,
+        labels: List<String>,
+        color: Int
+    ) {
+        val entries = mutableListOf<Entry>()
+        for (i in values.indices) {
+            entries.add(Entry(i.toFloat(), values[i]))
         }
+
+        val dataSet = LineDataSet(entries, "")
+        dataSet.color = color
+        dataSet.setCircleColor(color)
+        dataSet.lineWidth = 2.5f
+        dataSet.circleRadius = 4f
+        dataSet.setDrawCircleHole(true)
+        dataSet.circleHoleColor = Color.WHITE
+        dataSet.setDrawValues(false)
+        dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
+        dataSet.setDrawFilled(true)
+        dataSet.fillColor = color
+        dataSet.fillAlpha = 50
+        dataSet.highLightColor = color
+        dataSet.setDrawHorizontalHighlightIndicator(false)
 
         chart.data = LineData(dataSet)
         chart.xAxis.valueFormatter = IndexAxisValueFormatter(labels)
