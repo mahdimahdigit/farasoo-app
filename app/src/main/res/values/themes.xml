@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Farasoo" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/farasoo_blue</item>
+        <item name="colorPrimaryDark">@color/farasoo_blue_dark</item>
+        <item name="colorAccent">@color/farasoo_blue</item>
+        <item name="android:windowBackground">@color/farasoo_bg</item>
+        <item name="android:statusBarColor">@color/farasoo_blue</item>
+    </style>
+</resources>
