@@ -1,235 +1,76 @@
 package ir.farasoo.app
 
-import android.content.Context
-import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.JsonObject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import ir.farasoo.app.databinding.ActivityLoginBinding
+import kotlinx.coroutines.launch
 
-object ApiClient {
+class LoginActivity : AppCompatActivity() {
 
-    private const val TAG = "ApiClient"
+    private lateinit var binding: ActivityLoginBinding
 
-    // ⚠️ آدرس سرور
-    var baseUrl: String = "http://192.168.1.200:3000"
-        private set
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+        // چک کن کاربر قبلاً لاگین کرده یا نه
+        val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
+        val savedUserId = prefs.getInt("user_id", -1)
 
-    private val gson = Gson()
+        if (savedUserId > 0) {
+            // مستقیم برو به داشبورد
+            startActivity(Intent(this, DashboardActivity::class.java))
+            finish()
+            return
+        }
 
-    // ============================================================
-    // Login
-    // ============================================================
-    suspend fun login(context: Context, nationalId: String): LoginResult = withContext(Dispatchers.IO) {
-        try {
-            val json = JsonObject().apply { addProperty("national_id", nationalId) }
-            val body = json.toString().toRequestBody("application/json".toMediaType())
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-            val request = Request.Builder()
-                .url("$baseUrl/api/login")
-                .post(body)
-                .build()
+        // نمایش کد ملی ذخیره‌شده
+        val savedNationalId = prefs.getString("national_id", "")
+        if (!savedNationalId.isNullOrEmpty()) {
+            binding.nationalIdInput.setText(savedNationalId)
+        }
 
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
+        binding.loginButton.setOnClickListener {
+            val nationalId = binding.nationalIdInput.text.toString().trim()
 
-            Log.d(TAG, "Login response: $responseBody")
-
-            if (!response.isSuccessful) {
-                return@withContext LoginResult(false, null, "خطا در ورود")
+            if (nationalId.length != 10 || !nationalId.all { it.isDigit() }) {
+                showError("کد ملی باید ۱۰ رقم باشد")
+                return@setOnClickListener
             }
 
-            val jsonResponse = gson.fromJson(responseBody, JsonObject::class.java)
-            if (jsonResponse.get("ok")?.asBoolean == true) {
-                val user = jsonResponse.getAsJsonObject("user")
-                val userId = user.get("id").asInt
-                val fullName = user.get("full_name")?.asString ?: ""
-                val seatNumber = user.get("seat_number")?.asString ?: ""
+            performLogin(nationalId)
+        }
+    }
 
-                // ذخیره در SharedPreferences
-                val prefs = context.getSharedPreferences("farasoo", Context.MODE_PRIVATE)
-                prefs.edit()
-                    .putInt("user_id", userId)
-                    .putString("national_id", nationalId)
-                    .putString("full_name", fullName)
-                    .putString("seat_number", seatNumber)
-                    .apply()
+    private fun performLogin(nationalId: String) {
+        binding.loginButton.isEnabled = false
+        binding.loginProgress.visibility = View.VISIBLE
+        binding.errorText.visibility = View.GONE
 
-                LoginResult(true, UserInfo(userId, nationalId, fullName, seatNumber), null)
+        lifecycleScope.launch {
+            val result = ApiClient.login(this@LoginActivity, nationalId)
+
+            binding.loginProgress.visibility = View.GONE
+            binding.loginButton.isEnabled = true
+
+            if (result.success) {
+                Toast.makeText(this@LoginActivity, "خوش آمدید ${result.user?.fullName}", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@LoginActivity, DashboardActivity::class.java))
+                finish()
             } else {
-                LoginResult(false, null, jsonResponse.get("error")?.asString ?: "خطا")
+                showError(result.error ?: "خطا در ورود")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Login error", e)
-            LoginResult(false, null, "خطا در ارتباط با سرور")
         }
     }
 
-    // ============================================================
-    // Get User Info
-    // ============================================================
-    suspend fun getUserInfo(userId: Int): UserData? = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url("$baseUrl/api/user/$userId")
-                .get()
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-            Log.d(TAG, "User info: $responseBody")
-
-            if (!response.isSuccessful) return@withContext null
-
-            val json = gson.fromJson(responseBody, JsonObject::class.java)
-            if (json.get("ok")?.asBoolean != true) return@withContext null
-
-            val user = json.getAsJsonObject("user")
-            val bill = json.getAsJsonObject("bill")
-            val usage = json.getAsJsonObject("usage")
-
-            UserData(
-                id = user.get("id").asInt,
-                fullName = user.get("full_name")?.asString ?: "",
-                seatNumber = user.get("seat_number")?.asString ?: "",
-                quotaBytes = user.get("quota_bytes")?.asLong ?: 0L,
-                quotaSeconds = user.get("quota_seconds")?.asLong ?: 0L,
-                usedBytes = (bill.get("totalMB")?.asString?.toDoubleOrNull() ?: 0.0).let { (it * 1024 * 1024).toLong() },
-                usedSeconds = bill.get("totalSeconds")?.asLong ?: 0L,
-                currentCost = bill.get("currentCost")?.asLong ?: 0L,
-                todayBytes = usage.get("today_bytes")?.asLong ?: 0L,
-                todaySeconds = usage.get("today_seconds")?.asLong ?: 0L
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "GetUserInfo error", e)
-            null
-        }
-    }
-
-    // ============================================================
-    // Get Chart Data
-    // ============================================================
-    suspend fun getChartData(userId: Int, days: Int = 30): List<ChartPoint> = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url("$baseUrl/api/user/$userId/chart?days=$days")
-                .get()
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-
-            if (!response.isSuccessful) return@withContext emptyList()
-
-            val json = gson.fromJson(responseBody, JsonObject::class.java)
-            if (json.get("ok")?.asBoolean != true) return@withContext emptyList()
-
-            val dataArray = json.getAsJsonArray("data")
-            val result = mutableListOf<ChartPoint>()
-
-            for (i in 0 until dataArray.size()) {
-                val item = dataArray[i].asJsonObject
-                result.add(
-                    ChartPoint(
-                        date = item.get("date").asString,
-                        bytes = item.get("bytes").asLong,
-                        seconds = item.get("seconds").asLong
-                    )
-                )
-            }
-            result
-        } catch (e: Exception) {
-            Log.e(TAG, "Chart error", e)
-            emptyList()
-        }
-    }
-
-    // ============================================================
-    // Save Traffic to Server
-    // ============================================================
-    suspend fun reportTraffic(userId: Int, seconds: Long, bytes: Long): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val json = JsonObject().apply {
-                addProperty("user_id", userId)
-                addProperty("seconds", seconds)
-                addProperty("bytes", bytes)
-            }
-            val body = json.toString().toRequestBody("application/json".toMediaType())
-
-            val request = Request.Builder()
-                .url("$baseUrl/api/usage")
-                .post(body)
-                .build()
-
-            val response = client.newCall(request).execute()
-            response.isSuccessful
-        } catch (e: Exception) {
-            Log.e(TAG, "Report error", e)
-            false
-        }
-    }
-
-    // ============================================================
-    // Check if user should be blocked
-    // ============================================================
-    suspend fun checkUserStatus(userId: Int): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url("$baseUrl/api/users/$userId/status")
-                .get()
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-
-            if (!response.isSuccessful) return@withContext false
-
-            val json = gson.fromJson(responseBody, JsonObject::class.java)
-            json.get("shouldBlock")?.asBoolean ?: false
-        } catch (e: Exception) {
-            false
-        }
+    private fun showError(message: String) {
+        binding.errorText.text = message
+        binding.errorText.visibility = View.VISIBLE
     }
 }
-
-data class LoginResult(
-    val success: Boolean,
-    val user: UserInfo?,
-    val error: String?
-)
-
-data class UserInfo(
-    val id: Int,
-    val nationalId: String,
-    val fullName: String,
-    val seatNumber: String
-)
-
-data class UserData(
-    val id: Int,
-    val fullName: String,
-    val seatNumber: String,
-    val quotaBytes: Long,
-    val quotaSeconds: Long,
-    val usedBytes: Long,
-    val usedSeconds: Long,
-    val currentCost: Long,
-    val todayBytes: Long,
-    val todaySeconds: Long
-)
-
-data class ChartPoint(
-    val date: String,
-    val bytes: Long,
-    val seconds: Long
-)
