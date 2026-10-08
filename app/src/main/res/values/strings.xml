@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">فراسو</string>
+    <string name="login_title">پانسیون فراسو</string>
+    <string name="login_subtitle">برای ورود، کد ملی خود را وارد کنید</string>
+    <string name="login_domain">farasoo.space</string>
+    <string name="national_id_hint">۱۰ رقم</string>
+    <string name="login_button">ورود به پنل</string>
+    <string name="dashboard_title">پانسیون فراسو</string>
 </resources>
