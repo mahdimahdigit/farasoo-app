@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/farasoo_bg"
+    android:background="@drawable/bg_gradient_full"
     android:fillViewport="true">
 
     <LinearLayout
@@ -12,57 +12,72 @@
         android:orientation="vertical"
         android:gravity="center"
         android:padding="24dp"
-        android:minHeight="600dp">
+        android:minHeight="640dp">
 
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="12dp"
-            app:cardBackgroundColor="@color/farasoo_white">
+            app:cardCornerRadius="32dp"
+            app:cardElevation="20dp"
+            app:cardBackgroundColor="#FFFFFF">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="32dp"
+                android:padding="36dp"
                 android:gravity="center">
 
-                <!-- Logo -->
-                <ImageView
-                    android:id="@+id/logoImage"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:src="@drawable/ic_launcher_foreground"
-                    android:background="@drawable/bg_button_gradient"
-                    android:padding="20dp"
-                    android:layout_marginBottom="20dp" />
+                <!-- Logo Wrapper -->
+                <FrameLayout
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- Halo effect -->
+                    <View
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:background="@drawable/bg_logo_halo" />
+
+                    <!-- Logo -->
+                    <ImageView
+                        android:id="@+id/logoImage"
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/logo"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="لوگو" />
+
+                </FrameLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/login_title"
-                    android:textSize="24sp"
+                    android:text="پانسیون فراسو"
+                    android:textSize="26sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_text"
+                    android:textColor="#0C4A6E"
                     android:layout_marginBottom="6dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/login_subtitle"
+                    android:text="برای ورود، کد ملی خود را وارد کنید"
                     android:textSize="13sp"
-                    android:textColor="@color/farasoo_gray"
+                    android:textColor="#64748B"
                     android:layout_marginBottom="4dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/login_domain"
+                    android:text="farasoo.space"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_blue"
-                    android:layout_marginBottom="28dp" />
+                    android:textColor="#29A8DF"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="32dp" />
 
                 <!-- Error -->
                 <TextView
@@ -77,52 +92,57 @@
                     android:layout_marginBottom="15dp"
                     android:visibility="gone" />
 
-                <!-- Input -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="کد ملی"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_gray"
+                    android:textColor="#0369A1"
                     android:layout_marginBottom="8dp" />
 
-                <EditText
-                    android:id="@+id/nationalIdInput"
+                <!-- Input Wrapper with glow -->
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:background="@drawable/bg_input_round"
-                    android:hint="@string/national_id_hint"
-                    android:textColorHint="#94A3B8"
-                    android:textColor="@color/farasoo_text"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:inputType="number"
-                    android:maxLength="10"
-                    android:letterSpacing="0.15"
-                    android:paddingHorizontal="16dp"
-                    android:layout_marginBottom="20dp" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp">
 
-                <!-- Button -->
+                    <EditText
+                        android:id="@+id/nationalIdInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="66dp"
+                        android:background="@drawable/bg_input_premium"
+                        android:hint="0012345678"
+                        android:textColorHint="#94A3B8"
+                        android:textColor="#0C4A6E"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="10"
+                        android:letterSpacing="0.2"
+                        android:paddingHorizontal="20dp" />
+
+                </FrameLayout>
+
                 <Button
                     android:id="@+id/loginButton"
                     android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:text="@string/login_button"
+                    android:layout_height="62dp"
+                    android:text="ورود به پنل"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_white"
-                    android:background="@drawable/bg_button_gradient"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_button_premium"
                     android:textAllCaps="false"
-                    android:stateListAnimator="@null" />
+                    android:stateListAnimator="@null"
+                    android:elevation="8dp" />
 
-                <!-- Progress -->
                 <ProgressBar
                     android:id="@+id/loginProgress"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="15dp"
+                    android:layout_marginTop="16dp"
                     android:visibility="gone" />
 
             </LinearLayout>
