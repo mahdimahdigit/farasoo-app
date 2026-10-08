@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/farasoo_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="15dp">
+
+        <!-- Header -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="@color/farasoo_blue"
+            android:layout_marginBottom="15dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_title"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/farasoo_white" />
+
+                <TextView
+                    android:id="@+id/userNameText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="👋 -"
+                    android:textSize="15sp"
+                    android:textColor="@color/farasoo_white"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/userSeatText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🪑 -"
+                    android:textSize="12sp"
+                    android:textColor="#E0F2FE"
+                    android:layout_marginTop="4dp" />
+
+                <Button
+                    android:id="@+id/logoutButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="خروج"
+                    android:textSize="12sp"
+                    android:textColor="@color/farasoo_white"
+                    android:background="#33FFFFFF"
+                    android:textAllCaps="false"
+                    android:layout_marginTop="12dp"
+                    android:paddingHorizontal="24dp"
+                    android:stateListAnimator="@null" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Stats: Bytes + Seconds -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="4dp"
+                android:layout_marginEnd="6dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📥"
+                        android:textSize="24sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="حجم مصرفی"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/farasoo_gray"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:id="@+id/usedGbText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.00"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/farasoo_blue_dark"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="گیگابایت"
+                        android:textSize="10sp"
+                        android:textColor="@color/farasoo_gray" />
+
+                    <TextView
+                        android:id="@+id/bytesPercentText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/farasoo_blue"
+                        android:background="@color/farasoo_blue_light"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="3dp"
+                        android:layout_marginTop="6dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="4dp"
+                android:layout_marginStart="6dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:gravity="center">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏱️"
+                        android:textSize="24sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="زمان مصرفی"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/farasoo_gray"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:id="@+id/usedHoursText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.0"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/farasoo_purple"
+                        android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ساعت"
+                        android:textSize="10sp"
+                        android:textColor="@color/farasoo_gray" />
+
+                    <TextView
+                        android:id="@+id/timePercentText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/farasoo_purple"
+                        android:background="#EDE9FE"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="3dp"
+                        android:layout_marginTop="6dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Cost Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="6dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_cost_gradient"
+            app:cardBackgroundColor="@color/farasoo_green">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💰 هزینه فعلی"
+                    android:textSize="12sp"
+                    android:textColor="#DCFCE7" />
+
+                <TextView
+                    android:id="@+id/costText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/farasoo_white"
+                    android:layout_marginTop="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ریال"
+                    android:textSize="12sp"
+                    android:textColor="#DCFCE7" />
+
+                <TextView
+                    android:id="@+id/costNoteText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="10sp"
+                    android:textColor="#DCFCE7"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="sans-serif-italic" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Chart Tabs -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/farasoo_blue_light"
+            android:padding="4dp"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/tab7Days"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="۷ روز"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@color/farasoo_white"
+                android:textColor="@color/farasoo_blue_dark"
+                android:stateListAnimator="@null" />
+
+            <Button
+                android:id="@+id/tab4Weeks"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="۴ هفته"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@android:color/transparent"
+                android:textColor="@color/farasoo_gray"
+                android:stateListAnimator="@null" />
+
+            <Button
+                android:id="@+id/tab6Months"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:text="۶ ماه"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:background="@android:color/transparent"
+                android:textColor="@color/farasoo_gray"
+                android:stateListAnimator="@null" />
+        </LinearLayout>
+
+        <!-- Chart Volume -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📥 نمودار حجم مصرفی (MB)"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/farasoo_blue_dark"
+                    android:layout_marginBottom="10dp" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chartVolume"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Chart Time -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏱️ نمودار زمان مصرفی (دقیقه)"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/farasoo_purple"
+                    android:layout_marginBottom="10dp" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chartTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Chart Cost -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💰 نمودار هزینه (ریال)"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/farasoo_orange"
+                    android:layout_marginBottom="10dp" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chartCost"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Refresh Button -->
+        <Button
+            android:id="@+id/refreshButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="🔄 بروزرسانی"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/farasoo_white"
+            android:background="@drawable/bg_button_gradient"
+            android:textAllCaps="false"
+            android:stateListAnimator="@null" />
+
+    </LinearLayout>
+</ScrollView>
