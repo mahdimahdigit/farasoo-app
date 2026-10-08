@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/farasoo_bg">
+    android:background="@drawable/bg_gradient_full">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -11,29 +11,39 @@
         android:orientation="vertical"
         android:padding="15dp">
 
-        <!-- Header -->
+        <!-- Header with logo -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="@color/farasoo_blue"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="10dp"
             android:layout_marginBottom="15dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp"
+                android:background="@drawable/bg_header_gradient"
+                android:padding="22dp"
                 android:gravity="center">
+
+                <!-- Logo mini -->
+                <ImageView
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:src="@drawable/logo"
+                    android:scaleType="fitCenter"
+                    android:background="@drawable/bg_logo_halo"
+                    android:padding="10dp"
+                    android:layout_marginBottom="10dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/dashboard_title"
+                    android:text="پانسیون فراسو"
                     android:textSize="20sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_white" />
+                    android:textColor="#FFFFFF" />
 
                 <TextView
                     android:id="@+id/userNameText"
@@ -41,7 +51,7 @@
                     android:layout_height="wrap_content"
                     android:text="👋 -"
                     android:textSize="15sp"
-                    android:textColor="@color/farasoo_white"
+                    android:textColor="#FFFFFF"
                     android:layout_marginTop="8dp" />
 
                 <TextView
@@ -56,46 +66,49 @@
                 <Button
                     android:id="@+id/logoutButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
+                    android:layout_height="42dp"
                     android:text="خروج"
                     android:textSize="12sp"
-                    android:textColor="@color/farasoo_white"
-                    android:background="#33FFFFFF"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_button_logout"
                     android:textAllCaps="false"
-                    android:layout_marginTop="12dp"
-                    android:paddingHorizontal="24dp"
+                    android:layout_marginTop="14dp"
+                    android:paddingHorizontal="28dp"
                     android:stateListAnimator="@null" />
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Stats: Bytes + Seconds -->
+        <!-- Stats Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginBottom="12dp">
 
+            <!-- Bytes Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="6dp"
                 android:layout_marginEnd="6dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:padding="18dp"
+                    android:gravity="center"
+                    android:background="@drawable/bg_card_premium">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="📥"
-                        android:textSize="24sp" />
+                        android:textSize="28sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -103,25 +116,25 @@
                         android:text="حجم مصرفی"
                         android:textSize="11sp"
                         android:textStyle="bold"
-                        android:textColor="@color/farasoo_gray"
-                        android:layout_marginTop="4dp" />
+                        android:textColor="#64748B"
+                        android:layout_marginTop="6dp" />
 
                     <TextView
                         android:id="@+id/usedGbText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00"
-                        android:textSize="22sp"
+                        android:textSize="26sp"
                         android:textStyle="bold"
-                        android:textColor="@color/farasoo_blue_dark"
-                        android:layout_marginTop="4dp" />
+                        android:textColor="#0EA5E9"
+                        android:layout_marginTop="6dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="گیگابایت"
                         android:textSize="10sp"
-                        android:textColor="@color/farasoo_gray" />
+                        android:textColor="#64748B" />
 
                     <TextView
                         android:id="@+id/bytesPercentText"
@@ -130,35 +143,37 @@
                         android:text="0%"
                         android:textSize="11sp"
                         android:textStyle="bold"
-                        android:textColor="@color/farasoo_blue"
-                        android:background="@color/farasoo_blue_light"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="3dp"
-                        android:layout_marginTop="6dp" />
+                        android:textColor="#0369A1"
+                        android:background="@drawable/bg_percent_blue"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginTop="8dp" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Time Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="6dp"
                 android:layout_marginStart="6dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:padding="18dp"
+                    android:gravity="center"
+                    android:background="@drawable/bg_card_premium">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="⏱️"
-                        android:textSize="24sp" />
+                        android:textSize="28sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -166,25 +181,25 @@
                         android:text="زمان مصرفی"
                         android:textSize="11sp"
                         android:textStyle="bold"
-                        android:textColor="@color/farasoo_gray"
-                        android:layout_marginTop="4dp" />
+                        android:textColor="#64748B"
+                        android:layout_marginTop="6dp" />
 
                     <TextView
                         android:id="@+id/usedHoursText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.0"
-                        android:textSize="22sp"
+                        android:textSize="26sp"
                         android:textStyle="bold"
-                        android:textColor="@color/farasoo_purple"
-                        android:layout_marginTop="4dp" />
+                        android:textColor="#A78BFA"
+                        android:layout_marginTop="6dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ساعت"
                         android:textSize="10sp"
-                        android:textColor="@color/farasoo_gray" />
+                        android:textColor="#64748B" />
 
                     <TextView
                         android:id="@+id/timePercentText"
@@ -193,11 +208,11 @@
                         android:text="0%"
                         android:textSize="11sp"
                         android:textStyle="bold"
-                        android:textColor="@color/farasoo_purple"
-                        android:background="#EDE9FE"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="3dp"
-                        android:layout_marginTop="6dp" />
+                        android:textColor="#5B21B6"
+                        android:background="@drawable/bg_percent_purple"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="4dp"
+                        android:layout_marginTop="8dp" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -207,24 +222,24 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="6dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_cost_gradient"
-            app:cardBackgroundColor="@color/farasoo_green">
+            app:cardCornerRadius="24dp"
+            app:cardElevation="10dp"
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp"
+                android:background="@drawable/bg_cost_premium"
+                android:padding="24dp"
                 android:gravity="center">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="💰 هزینه فعلی"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
                     android:textColor="#DCFCE7" />
 
                 <TextView
@@ -232,16 +247,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textSize="32sp"
+                    android:textSize="38sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_white"
-                    android:layout_marginTop="6dp" />
+                    android:textColor="#FFFFFF"
+                    android:layout_marginTop="8dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ریال"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textColor="#DCFCE7" />
 
                 <TextView
@@ -251,7 +266,7 @@
                     android:text=""
                     android:textSize="10sp"
                     android:textColor="#DCFCE7"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:fontFamily="sans-serif-italic" />
 
             </LinearLayout>
@@ -262,47 +277,47 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="@color/farasoo_blue_light"
-            android:padding="4dp"
+            android:background="@drawable/bg_tabs_round"
+            android:padding="5dp"
             android:layout_marginBottom="12dp">
 
             <Button
                 android:id="@+id/tab7Days"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="42dp"
                 android:layout_weight="1"
                 android:text="۷ روز"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:textAllCaps="false"
-                android:background="@color/farasoo_white"
-                android:textColor="@color/farasoo_blue_dark"
+                android:background="@drawable/bg_tab_active"
+                android:textColor="#0EA5E9"
                 android:stateListAnimator="@null" />
 
             <Button
                 android:id="@+id/tab4Weeks"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="42dp"
                 android:layout_weight="1"
                 android:text="۴ هفته"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:textAllCaps="false"
                 android:background="@android:color/transparent"
-                android:textColor="@color/farasoo_gray"
+                android:textColor="#64748B"
                 android:stateListAnimator="@null" />
 
             <Button
                 android:id="@+id/tab6Months"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="42dp"
                 android:layout_weight="1"
                 android:text="۶ ماه"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:textAllCaps="false"
                 android:background="@android:color/transparent"
-                android:textColor="@color/farasoo_gray"
+                android:textColor="#64748B"
                 android:stateListAnimator="@null" />
         </LinearLayout>
 
@@ -310,24 +325,24 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="6dp"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📥 نمودار حجم مصرفی (MB)"
+                    android:text="📥 نمودار حجم مصرفی"
                     android:textSize="13sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_blue_dark"
-                    android:layout_marginBottom="10dp" />
+                    android:textColor="#0EA5E9"
+                    android:layout_marginBottom="12dp" />
 
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chartVolume"
@@ -341,24 +356,24 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="6dp"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⏱️ نمودار زمان مصرفی (دقیقه)"
+                    android:text="⏱️ نمودار زمان مصرفی"
                     android:textSize="13sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_purple"
-                    android:layout_marginBottom="10dp" />
+                    android:textColor="#A78BFA"
+                    android:layout_marginBottom="12dp" />
 
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chartTime"
@@ -372,24 +387,24 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="6dp"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💰 نمودار هزینه (ریال)"
+                    android:text="💰 نمودار هزینه"
                     android:textSize="13sp"
                     android:textStyle="bold"
-                    android:textColor="@color/farasoo_orange"
-                    android:layout_marginBottom="10dp" />
+                    android:textColor="#F59E0B"
+                    android:layout_marginBottom="12dp" />
 
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chartCost"
@@ -399,18 +414,18 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Refresh Button -->
         <Button
             android:id="@+id/refreshButton"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:text="🔄 بروزرسانی"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="@color/farasoo_white"
-            android:background="@drawable/bg_button_gradient"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_button_premium"
             android:textAllCaps="false"
-            android:stateListAnimator="@null" />
+            android:stateListAnimator="@null"
+            android:elevation="6dp" />
 
     </LinearLayout>
 </ScrollView>
