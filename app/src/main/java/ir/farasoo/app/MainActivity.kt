@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.webViewClient = WebViewClient()
-        webView.loadUrl("http://192.168.1.200:3000")
+        webView.loadUrl("http://192.168.1.199:3000")
     }
 
     override fun onBackPressed() {
