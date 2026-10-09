@@ -31,7 +31,6 @@ class DashboardActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // VPN مجاز شد
             startVpnService()
         } else {
             Toast.makeText(
@@ -41,6 +40,10 @@ class DashboardActivity : AppCompatActivity() {
             ).show()
         }
     }
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* نتیجه مهم نیست */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +68,7 @@ class DashboardActivity : AppCompatActivity() {
         }
 
         binding.logoutButton.setOnClickListener {
+            HeartbeatScheduler.stop(this)
             stopVpnService()
             prefs.edit().clear().apply()
             startActivity(Intent(this, LoginActivity::class.java))
@@ -87,24 +91,24 @@ class DashboardActivity : AppCompatActivity() {
         // درخواست مجوز نوتیفیکیشن (Android 13+)
         requestNotificationPermission()
 
+        // شروع Heartbeat Scheduler
+        HeartbeatScheduler.start(this)
+
         // شروع VPN
         prepareVpn()
     }
 
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
-                .launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     private fun prepareVpn() {
         val intent = VpnService.prepare(this)
         if (intent != null) {
-            // نیاز به تأیید کاربر
             vpnPrepareLauncher.launch(intent)
         } else {
-            // قبلاً تأیید شده
             startVpnService()
         }
     }
