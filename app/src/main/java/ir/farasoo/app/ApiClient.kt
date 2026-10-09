@@ -66,6 +66,82 @@ object ApiClient {
             Log.e(TAG, "Login error", e)
             LoginResult(false, null, "خطا در ارتباط با سرور")
         }
+    // ============================================================
+    // Report VPN Status
+    // ============================================================
+    suspend fun reportVpnStatus(userId: Int, active: Boolean): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val json = JsonObject().apply {
+                addProperty("user_id", userId)
+                addProperty("vpn_active", active)
+                addProperty("event", if (active) "vpn_started" else "vpn_stopped")
+            }
+            val body = json.toString().toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url("$baseUrl/api/vpn/status")
+                .post(body)
+                .build()
+            val response = client.newCall(request).execute()
+            response.isSuccessful
+        } catch (e: Exception) {
+            Log.e(TAG, "reportVpnStatus error", e)
+            false
+        }
+    }
+
+    // ============================================================
+    // Report VPN Revoked (کاربر خاموش کرده)
+    // ============================================================
+    suspend fun reportVpnRevoked(userId: Int): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val json = JsonObject().apply {
+                addProperty("user_id", userId)
+                addProperty("event", "vpn_revoked")
+                addProperty("warning", "کاربر VPN را خاموش کرده")
+            }
+            val body = json.toString().toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url("$baseUrl/api/vpn/status")
+                .post(body)
+                .build()
+            val response = client.newCall(request).execute()
+            response.isSuccessful
+        } catch (e: Exception) {
+            Log.e(TAG, "reportVpnRevoked error", e)
+            false
+        }
+    }
+
+    // ============================================================
+    // Send Heartbeat
+    // ============================================================
+    suspend fun sendHeartbeat(
+        userId: Int,
+        vpnActive: Boolean,
+        onFarasooWifi: Boolean,
+        ssid: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val json = JsonObject().apply {
+                addProperty("user_id", userId)
+                addProperty("vpn_active", vpnActive)
+                addProperty("on_farasoo_wifi", onFarasooWifi)
+                addProperty("ssid", ssid)
+            }
+            val body = json.toString().toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url("$baseUrl/api/heartbeat")
+                .post(body)
+                .build()
+            val response = client.newCall(request).execute()
+            response.isSuccessful
+        } catch (e: Exception) {
+            Log.e(TAG, "sendHeartbeat error", e)
+            false
+        }
+    }
+
+        
     }
 
     suspend fun getUserInfo(userId: Int): UserData? = withContext(Dispatchers.IO) {
