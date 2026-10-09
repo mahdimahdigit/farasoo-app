@@ -1,9 +1,14 @@
 package ir.farasoo.app
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -21,6 +26,21 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDashboardBinding
     private var userId: Int = -1
     private var currentPeriod: String = "day"
+
+    private val vpnPrepareLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // VPN مجاز شد
+            startVpnService()
+        } else {
+            Toast.makeText(
+                this,
+                "برای استفاده از اینترنت باید VPN فراسو را فعال کنید",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +65,7 @@ class DashboardActivity : AppCompatActivity() {
         }
 
         binding.logoutButton.setOnClickListener {
+            stopVpnService()
             prefs.edit().clear().apply()
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
@@ -62,11 +83,52 @@ class DashboardActivity : AppCompatActivity() {
         setupCharts()
         loadUserData()
         loadChartData()
+
+        // درخواست مجوز نوتیفیکیشن (Android 13+)
+        requestNotificationPermission()
+
+        // شروع VPN
+        prepareVpn()
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+                .launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private fun prepareVpn() {
+        val intent = VpnService.prepare(this)
+        if (intent != null) {
+            // نیاز به تأیید کاربر
+            vpnPrepareLauncher.launch(intent)
+        } else {
+            // قبلاً تأیید شده
+            startVpnService()
+        }
+    }
+
+    private fun startVpnService() {
+        val intent = Intent(this, FarasooVpnService::class.java).apply {
+            action = FarasooVpnService.ACTION_START
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    private fun stopVpnService() {
+        val intent = Intent(this, FarasooVpnService::class.java).apply {
+            action = FarasooVpnService.ACTION_STOP
+        }
+        startService(intent)
     }
 
     private fun switchPeriod(period: String) {
         currentPeriod = period
-
         val activeBg = ContextCompat.getColor(this, R.color.farasoo_white)
         val activeText = ContextCompat.getColor(this, R.color.farasoo_blue_dark)
         val inactiveBg = Color.TRANSPARENT
