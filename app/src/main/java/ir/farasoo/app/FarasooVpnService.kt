@@ -12,6 +12,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class FarasooVpnService : VpnService() {
@@ -29,6 +32,7 @@ class FarasooVpnService : VpnService() {
 
     private var tunInterface: ParcelFileDescriptor? = null
     private val scope = CoroutineScope(Dispatchers.IO)
+    private var heartbeatJob: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -67,17 +71,39 @@ class FarasooVpnService : VpnService() {
         isRunning = true
         Log.d("FarasooVpn", "VPN started")
 
-        // گزارش به سرور
+        // گزارش فوری
         scope.launch {
             val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
             val userId = prefs.getInt("user_id", -1)
-            if (userId > 0) {
-                ApiClient.reportVpnStatus(userId, true)
+            if (userId > 0) ApiClient.reportVpnStatus(userId, true)
+        }
+
+        // شروع heartbeat هر ۳۰ ثانیه
+        startHeartbeat()
+    }
+
+    private fun startHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = scope.launch {
+            while (isActive && isRunning) {
+                try {
+                    val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
+                    val userId = prefs.getInt("user_id", -1)
+                    if (userId > 0) {
+                        ApiClient.sendHeartbeat(userId, true, true, "Farasoo.Space")
+                    }
+                } catch (e: Exception) {
+                    Log.e("Heartbeat", "error", e)
+                }
+                delay(30_000)  // ۳۰ ثانیه
             }
         }
     }
 
     private fun stopVpn() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+
         if (!isRunning) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -87,34 +113,26 @@ class FarasooVpnService : VpnService() {
         isRunning = false
         try {
             tunInterface?.close()
-        } catch (e: Exception) {
-            // ignore
-        }
+        } catch (e: Exception) { }
+
         tunInterface = null
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         Log.d("FarasooVpn", "VPN stopped")
 
-        // گزارش به سرور
         scope.launch {
             val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
             val userId = prefs.getInt("user_id", -1)
-            if (userId > 0) {
-                ApiClient.reportVpnStatus(userId, false)
-            }
+            if (userId > 0) ApiClient.reportVpnStatus(userId, false)
         }
     }
 
     override fun onRevoke() {
-        Log.d("FarasooVpn", "VPN revoked by user/system")
-        // گزارش فوری به سرور
+        Log.d("FarasooVpn", "VPN revoked")
         val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
         val userId = prefs.getInt("user_id", -1)
         if (userId > 0) {
-            // این خیلی مهمه: کاربر VPN رو خاموش کرده
-            scope.launch {
-                ApiClient.reportVpnRevoked(userId)
-            }
+            scope.launch { ApiClient.reportVpnRevoked(userId) }
         }
         stopVpn()
         super.onRevoke()
@@ -128,15 +146,9 @@ class FarasooVpnService : VpnService() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                "فراسو VPN",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "اتصال VPN فراسو"
-                setShowBadge(false)
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+                CHANNEL_ID, "فراسو VPN", NotificationManager.IMPORTANCE_LOW
+            ).apply { setShowBadge(false) }
+            getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
         }
     }
 
@@ -144,19 +156,17 @@ class FarasooVpnService : VpnService() {
         val intent = Intent(this, DashboardActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val pendingIntent = PendingIntent.getActivity(
+        val pi = PendingIntent.getActivity(
             this, 0, intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("فراسو فعال است")
             .setContentText("اینترنت شما از طریق فراسو محافظت می‌شود")
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(pi)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
     }
 }
