@@ -31,6 +31,7 @@ class FarasooVpnService : VpnService() {
     }
 
     private var tunInterface: ParcelFileDescriptor? = null
+    private var forwarder: PacketForwarder? = null
     private val scope = CoroutineScope(Dispatchers.IO)
     private var heartbeatJob: Job? = null
 
