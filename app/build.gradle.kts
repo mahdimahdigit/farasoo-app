@@ -11,8 +11,8 @@ android {
         applicationId = "ir.farasoo.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "3.0"
     }
 
     buildTypes {
@@ -59,4 +59,7 @@ dependencies {
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
+
+    // WorkManager (برای Heartbeat)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }
