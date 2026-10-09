@@ -8,7 +8,11 @@ import android.content.Intent
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class FarasooVpnService : VpnService() {
 
@@ -17,10 +21,14 @@ class FarasooVpnService : VpnService() {
         const val ACTION_STOP = "ir.farasoo.app.STOP_VPN"
         const val CHANNEL_ID = "farasoo_vpn_channel"
         const val NOTIFICATION_ID = 1001
+
+        @Volatile
+        var isRunning = false
+            private set
     }
 
     private var tunInterface: ParcelFileDescriptor? = null
-    private var isRunning = false
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -35,26 +43,19 @@ class FarasooVpnService : VpnService() {
         if (isRunning) return
 
         createNotificationChannel()
+        startForeground(NOTIFICATION_ID, buildNotification())
 
-        // اعلان دائمی
-        val notification = buildNotification()
-        startForeground(NOTIFICATION_ID, notification)
-
-        // ساخت tun با یک route جعلی (TEST-NET-2 - هرگز در شبکه‌های واقعی استفاده نمی‌شه)
         val builder = Builder()
             .setSession("Farasoo")
             .addAddress("10.99.99.1", 32)
             .addRoute("198.51.100.0", 24)
             .addDnsServer("1.1.1.1")
+            .setMtu(1500)
 
-        // تنظیم MTU
-        builder.setMtu(1500)
-
-        // اینترفیس رو بساز
         tunInterface = try {
             builder.establish()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("FarasooVpn", "establish failed", e)
             null
         }
 
@@ -64,11 +65,25 @@ class FarasooVpnService : VpnService() {
         }
 
         isRunning = true
-        // VPN فقط "باز" می‌مونه - نیازی به forward ترافیک نیست
-        // Kill Switch سیستمی، وقتی VPN قطع شه همه چیز رو بلاک می‌کنه
+        Log.d("FarasooVpn", "VPN started")
+
+        // گزارش به سرور
+        scope.launch {
+            val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
+            val userId = prefs.getInt("user_id", -1)
+            if (userId > 0) {
+                ApiClient.reportVpnStatus(userId, true)
+            }
+        }
     }
 
     private fun stopVpn() {
+        if (!isRunning) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
+
         isRunning = false
         try {
             tunInterface?.close()
@@ -78,9 +93,29 @@ class FarasooVpnService : VpnService() {
         tunInterface = null
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+        Log.d("FarasooVpn", "VPN stopped")
+
+        // گزارش به سرور
+        scope.launch {
+            val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
+            val userId = prefs.getInt("user_id", -1)
+            if (userId > 0) {
+                ApiClient.reportVpnStatus(userId, false)
+            }
+        }
     }
 
     override fun onRevoke() {
+        Log.d("FarasooVpn", "VPN revoked by user/system")
+        // گزارش فوری به سرور
+        val prefs = getSharedPreferences("farasoo", MODE_PRIVATE)
+        val userId = prefs.getInt("user_id", -1)
+        if (userId > 0) {
+            // این خیلی مهمه: کاربر VPN رو خاموش کرده
+            scope.launch {
+                ApiClient.reportVpnRevoked(userId)
+            }
+        }
         stopVpn()
         super.onRevoke()
     }
@@ -110,9 +145,7 @@ class FarasooVpnService : VpnService() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
+            this, 0, intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
