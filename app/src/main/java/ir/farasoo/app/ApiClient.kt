@@ -26,6 +26,9 @@ object ApiClient {
 
     private val gson = Gson()
 
+    // ============================================================
+    // Login
+    // ============================================================
     suspend fun login(context: Context, nationalId: String): LoginResult = withContext(Dispatchers.IO) {
         try {
             val json = JsonObject().apply { addProperty("national_id", nationalId) }
@@ -66,6 +69,86 @@ object ApiClient {
             Log.e(TAG, "Login error", e)
             LoginResult(false, null, "خطا در ارتباط با سرور")
         }
+    }
+
+    // ============================================================
+    // Get User Info
+    // ============================================================
+    suspend fun getUserInfo(userId: Int): UserData? = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("$baseUrl/api/user/$userId")
+                .get()
+                .build()
+
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+
+            if (!response.isSuccessful) return@withContext null
+
+            val json = gson.fromJson(responseBody, JsonObject::class.java)
+            if (json.get("ok")?.asBoolean != true) return@withContext null
+
+            val user = json.getAsJsonObject("user")
+            val bill = json.getAsJsonObject("bill")
+            val usage = json.getAsJsonObject("usage")
+
+            UserData(
+                id = user.get("id").asInt,
+                fullName = user.get("full_name")?.asString ?: "",
+                seatNumber = user.get("seat_number")?.asString ?: "",
+                quotaBytes = user.get("quota_bytes")?.asLong ?: 0L,
+                quotaSeconds = user.get("quota_seconds")?.asLong ?: 0L,
+                usedBytes = ((bill.get("totalMB")?.asString?.toDoubleOrNull() ?: 0.0) * 1024 * 1024).toLong(),
+                usedSeconds = bill.get("totalSeconds")?.asLong ?: 0L,
+                currentCost = bill.get("currentCost")?.asLong ?: 0L,
+                todayBytes = usage.get("today_bytes")?.asLong ?: 0L,
+                todaySeconds = usage.get("today_seconds")?.asLong ?: 0L
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "GetUserInfo error", e)
+            null
+        }
+    }
+
+    // ============================================================
+    // Get Chart Data
+    // ============================================================
+    suspend fun getChartData(userId: Int, days: Int = 30): List<ChartPoint> = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("$baseUrl/api/user/$userId/chart?days=$days")
+                .get()
+                .build()
+
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+
+            if (!response.isSuccessful) return@withContext emptyList()
+
+            val json = gson.fromJson(responseBody, JsonObject::class.java)
+            if (json.get("ok")?.asBoolean != true) return@withContext emptyList()
+
+            val dataArray = json.getAsJsonArray("data")
+            val result = mutableListOf<ChartPoint>()
+
+            for (i in 0 until dataArray.size()) {
+                val item = dataArray[i].asJsonObject
+                result.add(
+                    ChartPoint(
+                        date = item.get("date").asString,
+                        bytes = item.get("bytes").asLong,
+                        seconds = item.get("seconds").asLong
+                    )
+                )
+            }
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Chart error", e)
+            emptyList()
+        }
+    }
+
     // ============================================================
     // Report VPN Status
     // ============================================================
@@ -138,81 +221,6 @@ object ApiClient {
         } catch (e: Exception) {
             Log.e(TAG, "sendHeartbeat error", e)
             false
-        }
-    }
-
-        
-    }
-
-    suspend fun getUserInfo(userId: Int): UserData? = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url("$baseUrl/api/user/$userId")
-                .get()
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-
-            if (!response.isSuccessful) return@withContext null
-
-            val json = gson.fromJson(responseBody, JsonObject::class.java)
-            if (json.get("ok")?.asBoolean != true) return@withContext null
-
-            val user = json.getAsJsonObject("user")
-            val bill = json.getAsJsonObject("bill")
-            val usage = json.getAsJsonObject("usage")
-
-            UserData(
-                id = user.get("id").asInt,
-                fullName = user.get("full_name")?.asString ?: "",
-                seatNumber = user.get("seat_number")?.asString ?: "",
-                quotaBytes = user.get("quota_bytes")?.asLong ?: 0L,
-                quotaSeconds = user.get("quota_seconds")?.asLong ?: 0L,
-                usedBytes = ((bill.get("totalMB")?.asString?.toDoubleOrNull() ?: 0.0) * 1024 * 1024).toLong(),
-                usedSeconds = bill.get("totalSeconds")?.asLong ?: 0L,
-                currentCost = bill.get("currentCost")?.asLong ?: 0L,
-                todayBytes = usage.get("today_bytes")?.asLong ?: 0L,
-                todaySeconds = usage.get("today_seconds")?.asLong ?: 0L
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "GetUserInfo error", e)
-            null
-        }
-    }
-
-    suspend fun getChartData(userId: Int, days: Int = 30): List<ChartPoint> = withContext(Dispatchers.IO) {
-        try {
-            val request = Request.Builder()
-                .url("$baseUrl/api/user/$userId/chart?days=$days")
-                .get()
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-
-            if (!response.isSuccessful) return@withContext emptyList()
-
-            val json = gson.fromJson(responseBody, JsonObject::class.java)
-            if (json.get("ok")?.asBoolean != true) return@withContext emptyList()
-
-            val dataArray = json.getAsJsonArray("data")
-            val result = mutableListOf<ChartPoint>()
-
-            for (i in 0 until dataArray.size()) {
-                val item = dataArray[i].asJsonObject
-                result.add(
-                    ChartPoint(
-                        date = item.get("date").asString,
-                        bytes = item.get("bytes").asLong,
-                        seconds = item.get("seconds").asLong
-                    )
-                )
-            }
-            result
-        } catch (e: Exception) {
-            Log.e(TAG, "Chart error", e)
-            emptyList()
         }
     }
 }
