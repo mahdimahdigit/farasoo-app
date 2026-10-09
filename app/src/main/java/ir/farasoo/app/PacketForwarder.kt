@@ -4,6 +4,7 @@ import android.net.VpnService
 import android.util.Log
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.lang.reflect.Field
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -17,8 +18,7 @@ import kotlin.concurrent.thread
 
 class PacketForwarder(
     private val vpnService: VpnService,
-    private val tunFd: Int,
-    private val dnsServer: String = "1.1.1.1"
+    private val tunFd: Int
 ) {
     companion object {
         private const val TAG = "PacketForwarder"
@@ -28,8 +28,6 @@ class PacketForwarder(
     private val running = AtomicInteger(1)
     private val udpPool: ExecutorService = Executors.newFixedThreadPool(4)
     private val tcpPool: ExecutorService = Executors.newCachedThreadPool()
-
-    // TCP connections map: key = "srcIP:srcPort-dstIP:dstPort"
     private val tcpConnections = ConcurrentHashMap<String, TcpConnection>()
 
     private var input: FileInputStream? = null
@@ -37,14 +35,16 @@ class PacketForwarder(
     private var thread: Thread? = null
 
     // ============================================================
-    // Start / Stop
+    // Start
     // ============================================================
     fun start() {
-        input = FileInputStream(vpnService.getFileDescriptorForTun(tunFd))
-        output = FileOutputStream(vpnService.getFileDescriptorForTun(tunFd))
+        val fd = getFileDescriptorForTun(tunFd)
+        input = FileInputStream(fd)
+        output = FileOutputStream(fd)
 
         thread = thread(name = "ForwarderMain") {
             val buffer = ByteArray(BUFFER_SIZE)
+            Log.d(TAG, "Forwarder thread started")
             while (running.get() == 1) {
                 try {
                     val length = input!!.read(buffer)
@@ -52,17 +52,25 @@ class PacketForwarder(
                     val packet = buffer.copyOf(length)
                     handlePacket(packet)
                 } catch (e: Exception) {
-                    if (running.get() == 1) Log.e(TAG, "read error", e)
+                    if (running.get() == 1) {
+                        Log.e(TAG, "read error: ${e.message}")
+                    }
                 }
             }
+            Log.d(TAG, "Forwarder thread stopped")
         }
     }
 
+    // ============================================================
+    // Stop
+    // ============================================================
     fun stop() {
         running.set(0)
         try { input?.close() } catch (_: Exception) {}
         try { output?.close() } catch (_: Exception) {}
-        tcpConnections.values.forEach { it.close() }
+        for (conn in tcpConnections.values) {
+            conn.close()
+        }
         tcpConnections.clear()
         udpPool.shutdownNow()
         tcpPool.shutdownNow()
@@ -70,29 +78,45 @@ class PacketForwarder(
     }
 
     // ============================================================
-    // Packet Handler
+    // FileDescriptor helper
+    // ============================================================
+    private fun getFileDescriptorForTun(fd: Int): java.io.FileDescriptor {
+        val descriptor = java.io.FileDescriptor()
+        try {
+            val field: Field = java.io.FileDescriptor::class.java.getDeclaredField("descriptor")
+            field.isAccessible = true
+            field.setInt(descriptor, fd)
+        } catch (e: Exception) {
+            Log.e(TAG, "reflect fd failed", e)
+        }
+        return descriptor
+    }
+
+    // ============================================================
+    // Handle Packet
     // ============================================================
     private fun handlePacket(packet: ByteArray) {
         if (packet.size < 20) return
 
         val version = (packet[0].toInt() ushr 4) and 0xF
-        if (version != 4) return  // فقط IPv4
+        if (version != 4) return
 
         val ihl = (packet[0].toInt() and 0xF) * 4
-        val protocol = packet[9].toInt() and 0xFF
+        if (packet.size < ihl) return
 
+        val protocol = packet[9].toInt() and 0xFF
         val srcIP = packet.copyOfRange(12, 16)
         val dstIP = packet.copyOfRange(16, 20)
 
         when (protocol) {
             17 -> handleUDP(packet, ihl, srcIP, dstIP)
-            6  -> handleTCP(packet, ihl, srcIP, dstIP)
+            6 -> handleTCP(packet, ihl, srcIP, dstIP)
             else -> { /* ICMP و بقیه: drop */ }
         }
     }
 
     // ============================================================
-    // UDP Handler
+    // UDP
     // ============================================================
     private fun handleUDP(packet: ByteArray, ihl: Int, srcIP: ByteArray, dstIP: ByteArray) {
         if (packet.size < ihl + 8) return
@@ -101,14 +125,14 @@ class PacketForwarder(
         val dstPort = readU16(packet, ihl + 2)
         val udpLen = readU16(packet, ihl + 4)
         val payloadLen = udpLen - 8
-        if (payloadLen <= 0) return
+        if (payloadLen <= 0 || ihl + 8 + payloadLen > packet.size) return
 
         val payload = packet.copyOfRange(ihl + 8, ihl + 8 + payloadLen)
 
         udpPool.submit {
             try {
                 val socket = DatagramSocket()
-                vpnService.protect(socket)  // ⭐ مهم
+                vpnService.protect(socket)
                 socket.soTimeout = 5000
 
                 val dstAddr = InetAddress.getByAddress(dstIP)
@@ -117,7 +141,6 @@ class PacketForwarder(
                 val respBuf = ByteArray(BUFFER_SIZE)
                 val respPkt = DatagramPacket(respBuf, respBuf.size)
                 socket.receive(respPkt)
-
                 socket.close()
 
                 val respPayload = respPkt.data.copyOf(respPkt.length)
@@ -128,13 +151,13 @@ class PacketForwarder(
                 )
                 writeToTun(respPacket)
             } catch (e: Exception) {
-                // timeout - ignore
+                // timeout یا خطا - drop
             }
         }
     }
 
     // ============================================================
-    // TCP Handler (simplified)
+    // TCP
     // ============================================================
     private fun handleTCP(packet: ByteArray, ihl: Int, srcIP: ByteArray, dstIP: ByteArray) {
         if (packet.size < ihl + 20) return
@@ -142,10 +165,10 @@ class PacketForwarder(
         val srcPort = readU16(packet, ihl)
         val dstPort = readU16(packet, ihl + 2)
         val seqNum = readU32(packet, ihl + 4)
-        val ackNum = readU32(packet, ihl + 8)
         val dataOffset = ((packet[ihl + 12].toInt() ushr 4) and 0xF) * 4
-        val flags = packet[ihl + 13].toInt() and 0xFF
+        if (dataOffset < 20) return
 
+        val flags = packet[ihl + 13].toInt() and 0xFF
         val isSyn = (flags and 0x02) != 0
         val isAck = (flags and 0x10) != 0
         val isFin = (flags and 0x01) != 0
@@ -156,40 +179,44 @@ class PacketForwarder(
 
         // SYN → new connection
         if (isSyn && !isAck) {
+            val existing = tcpConnections[key]
+            if (existing != null) return
+
             tcpPool.submit {
                 try {
                     val socket = Socket()
-                    vpnService.protect(socket)  // ⭐ مهم
+                    vpnService.protect(socket)
+                    socket.tcpNoDelay = true
                     socket.connect(InetSocketAddress(InetAddress.getByAddress(dstIP), dstPort), 10000)
 
                     val conn = TcpConnection(
                         socket = socket,
                         srcIP = srcIP, srcPort = srcPort,
                         dstIP = dstIP, dstPort = dstPort,
-                        mySeq = 1000, peerSeq = seqNum + 1
+                        mySeq = 1000,
+                        peerSeq = seqNum + 1
                     )
                     tcpConnections[key] = conn
 
-                    // Send SYN-ACK
+                    // SYN-ACK
                     val synAck = buildTcpPacket(
                         srcIP = dstIP, srcPort = dstPort,
                         dstIP = srcIP, dstPort = srcPort,
                         seq = conn.mySeq, ack = conn.peerSeq,
-                        flags = 0x12,  // SYN+ACK
+                        flags = 0x12,
                         payload = null
                     )
                     writeToTun(synAck)
 
-                    // Start reading from socket
+                    // Start reader
                     startTcpReader(conn, key)
                 } catch (e: Exception) {
-                    Log.e(TAG, "TCP connect failed", e)
-                    // Send RST
+                    Log.e(TAG, "TCP connect failed: ${e.message}")
                     val rst = buildTcpPacket(
                         srcIP = dstIP, srcPort = dstPort,
                         dstIP = srcIP, dstPort = srcPort,
                         seq = 0, ack = seqNum + 1,
-                        flags = 0x14,  // RST+ACK
+                        flags = 0x14,
                         payload = null
                     )
                     writeToTun(rst)
@@ -200,7 +227,14 @@ class PacketForwarder(
 
         val conn = tcpConnections[key] ?: return
 
-        // Data packet → forward to socket
+        // FIN or RST → close
+        if (isRst) {
+            conn.close()
+            tcpConnections.remove(key)
+            return
+        }
+
+        // Data → forward
         if (isPsh && packet.size > ihl + dataOffset) {
             val payload = packet.copyOfRange(ihl + dataOffset, packet.size)
             try {
@@ -208,7 +242,7 @@ class PacketForwarder(
                 conn.socket.getOutputStream().flush()
                 conn.mySeq += payload.size
 
-                // Send ACK back
+                // ACK
                 val ack = buildTcpPacket(
                     srcIP = dstIP, srcPort = dstPort,
                     dstIP = srcIP, dstPort = srcPort,
@@ -218,17 +252,24 @@ class PacketForwarder(
                 )
                 writeToTun(ack)
             } catch (e: Exception) {
-                Log.e(TAG, "TCP write failed", e)
+                Log.e(TAG, "TCP write failed: ${e.message}")
+                conn.close()
+                tcpConnections.remove(key)
             }
         }
 
         // FIN → close
         if (isFin) {
-            try { conn.socket.close() } catch (_: Exception) {}
-            tcpConnections.remove(key)
-        }
-        if (isRst) {
-            try { conn.socket.close() } catch (_: Exception) {}
+            // ACK the FIN
+            val ack = buildTcpPacket(
+                srcIP = dstIP, srcPort = dstPort,
+                dstIP = srcIP, dstPort = srcPort,
+                seq = conn.mySeq, ack = seqNum + 1,
+                flags = 0x11,
+                payload = null
+            )
+            writeToTun(ack)
+            conn.close()
             tcpConnections.remove(key)
         }
     }
@@ -252,30 +293,21 @@ class PacketForwarder(
                     )
                     writeToTun(pkt)
                     conn.peerSeq += n
-
-                    // Send ACK from peer side
-                    val ack = buildTcpPacket(
-                        srcIP = conn.srcIP, srcPort = conn.srcPort,
-                        dstIP = conn.dstIP, dstPort = conn.dstPort,
-                        seq = conn.mySeq, ack = conn.peerSeq,
-                        flags = 0x10,
-                        payload = null
-                    )
-                    writeToTun(ack)
                 }
 
-                // Send FIN
+                // FIN
                 val fin = buildTcpPacket(
                     srcIP = conn.dstIP, srcPort = conn.dstPort,
                     dstIP = conn.srcIP, dstPort = conn.srcPort,
                     seq = conn.peerSeq, ack = conn.mySeq,
-                    flags = 0x11,  // FIN+ACK
+                    flags = 0x11,
                     payload = null
                 )
                 writeToTun(fin)
             } catch (e: Exception) {
-                // connection closed
+                // ignore
             } finally {
+                conn.close()
                 tcpConnections.remove(key)
             }
         }
@@ -298,14 +330,13 @@ class PacketForwarder(
         pkt[1] = 0
         writeU16(pkt, 2, totalLen)
         writeU16(pkt, 4, 0)
-        writeU16(pkt, 6, 0)
+        writeU16(pkt, 6, 0x4000)
         pkt[8] = 64
-        pkt[9] = 17  // UDP
+        pkt[9] = 17
         writeU16(pkt, 10, 0)
         srcIP.copyInto(pkt, 12)
         dstIP.copyInto(pkt, 16)
-        val ipSum = checksum(pkt, 0, 20)
-        writeU16(pkt, 10, ipSum)
+        writeU16(pkt, 10, checksum(pkt, 0, 20))
 
         // UDP header
         writeU16(pkt, 20, srcPort)
@@ -333,7 +364,7 @@ class PacketForwarder(
         pkt[1] = 0
         writeU16(pkt, 2, totalLen)
         writeU16(pkt, 4, 0)
-        writeU16(pkt, 6, 0)
+        writeU16(pkt, 6, 0x4000)
         pkt[8] = 64
         pkt[9] = 6
         writeU16(pkt, 10, 0)
@@ -346,17 +377,20 @@ class PacketForwarder(
         writeU16(pkt, 22, dstPort)
         writeU32(pkt, 24, seq)
         writeU32(pkt, 28, ack)
-        pkt[32] = 0x50  // data offset = 5
+        pkt[32] = 0x50
         pkt[33] = flags.toByte()
         writeU16(pkt, 34, 65535)
         writeU16(pkt, 36, 0)
         writeU16(pkt, 38, 0)
 
+        if (payload != null && payloadLen > 0) {
+            payload.copyInto(pkt, 40)
+        }
+
         // TCP checksum
         val tcpSum = tcpChecksum(srcIP, dstIP, pkt, 20, 20 + payloadLen)
         writeU16(pkt, 36, tcpSum)
 
-        payload?.copyInto(pkt, 40)
         return pkt
     }
 
@@ -378,9 +412,9 @@ class PacketForwarder(
 
     private fun readU32(data: ByteArray, offset: Int): Int {
         return ((data[offset].toInt() and 0xFF) shl 24) or
-               ((data[offset + 1].toInt() and 0xFF) shl 16) or
-               ((data[offset + 2].toInt() and 0xFF) shl 8) or
-               (data[offset + 3].toInt() and 0xFF)
+                ((data[offset + 1].toInt() and 0xFF) shl 16) or
+                ((data[offset + 2].toInt() and 0xFF) shl 8) or
+                (data[offset + 3].toInt() and 0xFF)
     }
 
     private fun writeU16(data: ByteArray, offset: Int, value: Int) {
@@ -411,7 +445,10 @@ class PacketForwarder(
         return sum.inv() and 0xFFFF
     }
 
-    private fun tcpChecksum(srcIP: ByteArray, dstIP: ByteArray, data: ByteArray, offset: Int, length: Int): Int {
+    private fun tcpChecksum(
+        srcIP: ByteArray, dstIP: ByteArray,
+        data: ByteArray, offset: Int, length: Int
+    ): Int {
         val pseudo = ByteArray(12 + length)
         srcIP.copyInto(pseudo, 0)
         dstIP.copyInto(pseudo, 4)
@@ -426,11 +463,16 @@ class PacketForwarder(
             sum += readU16(pseudo, i)
             i += 2
         }
-        if (pseudo.size % 2 == 1) sum += (pseudo[pseudo.size - 1].toInt() and 0xFF) shl 8
+        if (pseudo.size % 2 == 1) {
+            sum += (pseudo[pseudo.size - 1].toInt() and 0xFF) shl 8
+        }
         while (sum shr 16 != 0) sum = (sum and 0xFFFF) + (sum shr 16)
         return sum.inv() and 0xFFFF
     }
 
+    // ============================================================
+    // TcpConnection data class
+    // ============================================================
     data class TcpConnection(
         val socket: Socket,
         val srcIP: ByteArray,
